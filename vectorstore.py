@@ -75,23 +75,27 @@ def load_documents_into_vectorstore(files=None):
     else:
 
         # Default PDF
-        if os.path.exists("PragyanAI_Presentation.pdf"):
-            loader = PyPDFLoader("PragyanAI_Presentation.pdf")
-            docs.extend(loader.load())
+       pdf_path = os.path.join("data", "Presentation.pdf")
+
+       if os.path.exists(pdf_path):
+       loader = PyPDFLoader(pdf_path)
+       docs.extend(loader.load())
 
         # Default Excel
-        if os.path.exists("PragyanAI_FAQ.xlsx"):
+        excel_path = os.path.join("data", "PragyanAI_FAQ.xlsx")
 
-            df = pd.read_excel("PragyanAI_FAQ.xlsx")
+        if os.path.exists(excel_path):
 
-            for _, row in df.iterrows():
-                docs.append(
-                    Document(
-                        page_content=" | ".join(
-                            f"{col}: {row[col]}" for col in df.columns
-                        )
+        df = pd.read_excel(excel_path)
+
+        for _, row in df.iterrows():
+            docs.append(
+                Document(
+                    page_content=" | ".join(
+                        f"{c}: {row[c]}" for c in df.columns
                     )
                 )
+            )
 
     # ================================================================
     # CREATE VECTOR STORE
@@ -100,7 +104,7 @@ def load_documents_into_vectorstore(files=None):
     if len(docs) == 0:
         print("No documents found.")
         return "No documents found."
-
+    print("Number of docs:", len(docs))
     vectorstore = FAISS.from_documents(
         docs,
         embeddings
