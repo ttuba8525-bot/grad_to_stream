@@ -13,3 +13,6 @@ pypdf
 openpyxl
 pandas
 python-dotenv
+streamlit-mic-recorder
+SpeechRecognition
+pydub
