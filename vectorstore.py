@@ -7,9 +7,9 @@ from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.documents import Document
 
-# -------------------------------------------------------------------
+# -------------------------------------------------------
 # Embedding Model
-# -------------------------------------------------------------------
+# -------------------------------------------------------
 
 embeddings = HuggingFaceEmbeddings(
     model_name="all-MiniLM-L6-v2"
@@ -23,9 +23,9 @@ def load_documents_into_vectorstore(files=None):
     Creates/Updates the FAISS Vector Store.
 
     If files=None:
-        Loads the default FAQ Excel and Presentation PDF.
+        Loads the default files from the data folder.
 
-    If files are uploaded:
+    If files are provided:
         Loads uploaded PDF/Excel files.
     """
 
@@ -33,18 +33,17 @@ def load_documents_into_vectorstore(files=None):
 
     docs = []
 
-    # ================================================================
-    # CASE 1 : USER UPLOADS FILES
-    # ================================================================
+    # -------------------------------------------------------
+    # CASE 1 : Uploaded Files
+    # -------------------------------------------------------
 
     if files:
 
         for file in files:
 
-            # ---------------- PDF ----------------
+            # PDF
             if file.name.endswith(".pdf"):
 
-                # Streamlit uploader gives bytes, save temporarily
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
                     tmp.write(file.read())
                     temp_path = tmp.name
@@ -54,62 +53,64 @@ def load_documents_into_vectorstore(files=None):
 
                 os.remove(temp_path)
 
-            # ---------------- Excel ----------------
+            # Excel
             elif file.name.endswith((".xlsx", ".xls")):
 
                 df = pd.read_excel(file)
 
                 for _, row in df.iterrows():
+
                     docs.append(
                         Document(
                             page_content=" | ".join(
-                                f"{col}: {row[col]}" for col in df.columns
+                                f"{col}: {row[col]}"
+                                for col in df.columns
                             )
                         )
                     )
 
-    # ================================================================
-    # CASE 2 : LOAD DEFAULT FILES
-    # ================================================================
+    # -------------------------------------------------------
+    # CASE 2 : Default Files
+    # -------------------------------------------------------
 
     else:
 
-        # Default PDF
-       pdf_path = os.path.join("data", "Presentation.pdf")
+        pdf_path = os.path.join("data", "Presentation.pdf")
 
-       if os.path.exists(pdf_path):
-       loader = PyPDFLoader(pdf_path)
-       docs.extend(loader.load())
+        if os.path.exists(pdf_path):
+            loader = PyPDFLoader(pdf_path)
+            docs.extend(loader.load())
 
-        # Default Excel
         excel_path = os.path.join("data", "PragyanAI_FAQ.xlsx")
 
         if os.path.exists(excel_path):
 
-        df = pd.read_excel(excel_path)
+            df = pd.read_excel(excel_path)
 
-        for _, row in df.iterrows():
-            docs.append(
-                Document(
-                    page_content=" | ".join(
-                        f"{c}: {row[c]}" for c in df.columns
+            for _, row in df.iterrows():
+
+                docs.append(
+                    Document(
+                        page_content=" | ".join(
+                            f"{col}: {row[col]}"
+                            for col in df.columns
+                        )
                     )
                 )
-            )
 
-    # ================================================================
-    # CREATE VECTOR STORE
-    # ================================================================
+    # -------------------------------------------------------
+    # Create Vector Store
+    # -------------------------------------------------------
 
     if len(docs) == 0:
-        print("No documents found.")
+        print("❌ No documents found.")
         return "No documents found."
-    print("Number of docs:", len(docs))
+
+    print(f"Loaded {len(docs)} documents.")
+
     vectorstore = FAISS.from_documents(
         docs,
         embeddings
     )
-
-    print(f"Loaded {len(docs)} documents.")
 
     return f"Knowledge Base Updated ({len(docs)} chunks)"
