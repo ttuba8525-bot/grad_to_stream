@@ -8,6 +8,7 @@ st.set_page_config(
     page_icon="🤖",
     layout="wide"
 )
+load_documents_into_vectorstore()
 
 st.title("🤖 PragyanAI Conversational Sales & FAQ Assistant")
 st.write("Ask anything about PragyanAI.")
