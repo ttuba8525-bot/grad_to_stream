@@ -7,7 +7,7 @@ from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 
 from prompts import SALES_PROMPTS
-from vectorstore import vectorstore
+import vectorstore
 
 # ---------------------------------------------------------------------------
 # LLM
@@ -62,9 +62,7 @@ def respond(message, persona_name):
     if not message.strip():
         return ""
 
-    retriever = vectorstore.as_retriever(
-        search_kwargs={"k": 4}
-    )
+    retriever = vectorstore.vectorstore.as_retriever(search_kwargs={"k": 4})
 
     relevant_docs = retriever.invoke(message)
 
