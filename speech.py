@@ -1,7 +1,8 @@
+import os
 import tempfile
-from groq import Groq
-import streamlit as st
 
+import streamlit as st
+from groq import Groq
 
 client = Groq(
     api_key=st.secrets["GROQ_API_KEY"]
@@ -9,18 +10,25 @@ client = Groq(
 
 
 def transcribe_audio(audio_bytes):
+    """
+    Transcribes microphone audio using Groq Whisper.
+    """
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as f:
-        f.write(audio_bytes)
-        audio_path = f.name
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+        tmp.write(audio_bytes)
+        temp_path = tmp.name
 
-    with open(audio_path, "rb") as file:
+    try:
+        with open(temp_path, "rb") as audio_file:
 
-        transcription = client.audio.transcriptions.create(
-            file=file,
-            model="whisper-large-v3",
-            response_format="text",
-            language="en"
-        )
+            transcription = client.audio.transcriptions.create(
+                file=audio_file,
+                model="whisper-large-v3-turbo",
+                response_format="text"
+            )
 
-    return transcription
+        return transcription
+
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
