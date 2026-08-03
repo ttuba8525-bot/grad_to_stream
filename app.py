@@ -1,11 +1,10 @@
 import streamlit as st
-import tempfile
-import speech_recognition as sr
 from streamlit_mic_recorder import mic_recorder
 
 from vectorstore import load_documents_into_vectorstore
 from rag import respond, clear_chat_history
 from prompts import SALES_PROMPTS
+from speech import transcribe_audio
 
 # --------------------------------------------------------
 # PAGE CONFIG
@@ -21,7 +20,9 @@ st.set_page_config(
 # LOAD KNOWLEDGE BASE
 # --------------------------------------------------------
 
-load_documents_into_vectorstore()
+if "kb_loaded" not in st.session_state:
+    load_documents_into_vectorstore()
+    st.session_state.kb_loaded = True
 
 # --------------------------------------------------------
 # TITLE
@@ -50,8 +51,8 @@ with st.sidebar:
     )
 
     if uploaded_files:
-        msg = load_documents_into_vectorstore(uploaded_files)
-        st.success(msg)
+        message = load_documents_into_vectorstore(uploaded_files)
+        st.success(message)
 
     if st.button("🗑 Clear Memory"):
         clear_chat_history(persona)
@@ -66,7 +67,6 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 for msg in st.session_state.messages:
-
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
@@ -77,8 +77,8 @@ for msg in st.session_state.messages:
 st.markdown("### 🎤 Voice Input")
 
 audio = mic_recorder(
-    start_prompt="🎙 Start Recording",
-    stop_prompt="⏹ Stop Recording",
+    start_prompt="🎙️ Start Recording",
+    stop_prompt="⏹️ Stop Recording",
     just_once=True,
     use_container_width=True,
     key="voice"
@@ -88,32 +88,25 @@ voice_prompt = ""
 
 if audio:
 
-    recognizer = sr.Recognizer()
+    with st.spinner("Transcribing voice..."):
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as f:
-        f.write(audio["bytes"])
-        temp_audio = f.name
+        try:
+            voice_prompt = transcribe_audio(audio["bytes"])
 
-    try:
+            st.success("You said:")
+            st.info(voice_prompt)
 
-        with sr.AudioFile(temp_audio) as source:
-            audio_data = recognizer.record(source)
-
-        voice_prompt = recognizer.recognize_google(audio_data)
-
-        st.success(f"🎤 You said: {voice_prompt}")
-
-    except Exception as e:
-        st.error(f"Speech Recognition Error: {e}")
+        except Exception as e:
+            st.error(f"Transcription failed: {e}")
 
 # --------------------------------------------------------
 # TEXT INPUT
 # --------------------------------------------------------
 
-text_prompt = st.chat_input("Ask a question...")
+text_prompt = st.chat_input("Type your question...")
 
 # --------------------------------------------------------
-# USE EITHER TEXT OR VOICE
+# FINAL PROMPT
 # --------------------------------------------------------
 
 prompt = text_prompt if text_prompt else voice_prompt
